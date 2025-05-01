@@ -1,45 +1,33 @@
 
 library(ggplot2)
 
-# Read the raw counts file (assuming it's tab-separated)
 data <- read.delim("Filtered_counts.txt", header=TRUE)
 
 gene_ids <- data[, 1]
 
-# Extract expression data for controls, condition1, and condition2
 control_expression <- data[, 2:4]
 condition1_expression <- data[, 5:7]
 condition2_expression <- data[, 8:10]
 
-
-# Print column names for each subset
 print(colnames(control_expression))
 print(colnames(condition1_expression))
 print(colnames(condition2_expression))
 
-
-# Rename columns to make them consistent
 colnames(control_expression) <- colnames(condition1_expression) <- colnames(condition2_expression) <- c("EV1", "EV2", "EV3")
 
 print(colnames(control_expression))
-[1] "EV1" "EV2" "EV3"
 
-# Combine all expression data for PCA
 all_expression <- rbind(control_expression, condition1_expression, condition2_expression)
 
-# Perform PCA
 pca_result <- prcomp(all_expression, scale.=FALSE)
 
-# Extract PC scores
 pc_scores <- as.data.frame(pca_result$x[, 1:2])
 
-# Assign labels for samples
 labels <- c(rep("Control", nrow(control_expression)), 
 		            rep("Condition1", nrow(condition1_expression)), 
 		            rep("Condition2", nrow(condition2_expression)))
 pc_scores$Label <- factor(labels)
 
-# Plotting
 p <- ggplot(pc_scores, aes(x = PC1, y = PC2, color = Label)) +
   geom_point() +
   labs(title = "PCA Plot",
