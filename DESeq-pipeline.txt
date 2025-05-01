@@ -1,63 +1,43 @@
-# Load required libraries
 library(DESeq2)
 
-#Remove rows with zero
 awk 'BEGIN {FS=OFS="\t"} {zero=1; for (i=2; i<=NF; i++) if ($i != 0) zero=0; if (!zero) print}' RawCountFile_rsemgenes.txt > filtered_counts.txt
 
-# Step 1: Read count data
 count_data <- read.table("filtered_counts.txt", header=TRUE, row.names=1)
 
-# Step 2: Extract columns for each condition
 control_columns <- 2:4
 condition1_columns <- 5:7
 condition2_columns <- 8:10
 
-# Round the count data to integers
 count_data_rounded <- round(count_data)
 
-# Create an empty RangedSummarizedExperiment object
 rs <- SummarizedExperiment(assays = list(counts = as.matrix(count_data_rounded)))
 
-# Create a column metadata data frame
 col_data <- data.frame(condition = factor(c(rep("Control", 3), rep("Condition1", 3), rep("Condition2", 3))))
 
-# Step 3: Create a DESeqDataSet object
 dds <- DESeqDataSetFromMatrix(countData = count_data,
                               colData = col_data,
                               design = ~ condition)
 
-# Step 4: Perform DESeq2 analysis
 dds <- DESeq(dds)
 
-# Step 5: Perform pairwise differential expression analysis
 results_condition1_vs_control <- results(dds, contrast = c("condition", "condition1", "control"))
 results_condition2_vs_control <- results(dds, contrast = c("condition", "condition2", "control"))
 results_condition1_vs_condition2 <- results(dds, contrast = c("condition", "condition1", "condition2"))
 
-# Step 6: Extract and visualize differentially expressed genes
 DEGs_condition1_vs_control <- subset(results_condition1_vs_control, padj < 0.05 & abs(log2FoldChange) > 1)
 DEGs_condition2_vs_control <- subset(results_condition2_vs_control, padj < 0.05 & abs(log2FoldChange) > 1)
 DEGs_condition1_vs_condition2 <- subset(results_condition1_vs_condition2, padj < 0.05 & abs(log2FoldChange) > 1)
 
-
-# Step 7:Filter out rows with missing values or values outside the scale range
 results_condition1_vs_control_filtered <- subset(results_condition1_vs_control, !is.na(log2FoldChange) & !is.na(padj) & abs(log2FoldChange) <= 20)
 
-# Step 8:Define custom colors for DEGs and non-DEGs
 custom_colors <- c(DEGs = "red", Non_DEGs = "black")
 
-
-# Step 9:Extract DEGs from results_condition1_vs_control
 DEGs_condition1_vs_control <- subset(results_condition1_vs_control, padj < 0.05 & abs(log2FoldChange) > 1)
 
-# Write DEGs to a CSV file
 write.csv(DEGs_condition1_vs_control, file = "DEGs_condition1_vs_control.csv", row.names = TRUE)
 
-# Check if the CSV file was created successfully
 file.exists("DEGs_condition1_vs_control.csv")
 
-
-# Step 10:Volcano plot for condition 1 vs. condition 2 with white background and custom colors
 volcano_plot_condition1_vs_condition2 <- ggplot(results_condition1_vs_condition2_filtered, aes(x = log2FoldChange, y = -log10(padj), color = ifelse(padj < 0.05 & abs(log2FoldChange) > 1, "DEGs", "Non_DEGs"))) +
   geom_point(size = 1) +
   labs(title = "Volcano Plot - Condition 1 vs. Condition 2",
